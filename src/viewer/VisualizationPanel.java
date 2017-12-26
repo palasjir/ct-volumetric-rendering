@@ -15,6 +15,7 @@ import com.jogamp.opengl.util.Animator;
 import com.jogamp.opengl.util.glsl.ShaderCode;
 import com.jogamp.opengl.util.glsl.ShaderProgram;
 import com.jogamp.opengl.util.glsl.ShaderState;
+
 import java.awt.Dimension;
 import java.awt.Point;
 import java.awt.event.MouseEvent;
@@ -31,7 +32,6 @@ import static com.jogamp.opengl.GL2ES2.*;
 import static com.jogamp.opengl.GL2GL3.GL_TEXTURE_1D;
 
 /**
- *
  * @author palasjiri
  */
 public class VisualizationPanel extends GLCanvas implements GLEventListener {
@@ -41,7 +41,7 @@ public class VisualizationPanel extends GLCanvas implements GLEventListener {
     protected static final int IMG_WIDTH = 256;
     protected static final int IMG_HEIGHT = 256;
     protected static final int IMG_DEPTH = 113 * 2;
-    
+
     int[][][] voxels;
 
     ShaderState st;
@@ -56,8 +56,6 @@ public class VisualizationPanel extends GLCanvas implements GLEventListener {
 
     // 3D texture id
     int g_volTexObj;
-
-    float stepSize = 0.001f;
 
     int g_angle = 1;
 
@@ -78,50 +76,47 @@ public class VisualizationPanel extends GLCanvas implements GLEventListener {
 
     // Geometry
     static Mat4 model = new Mat4(1.0f);
-    
-    static{
-        model = Matrices.rotate(model, 90.0f, new Vec3(1.0f,0.0f,0.0f));
+
+    static {
+        model = Matrices.rotate(model, 90.0f, new Vec3(1.0f, 0.0f, 0.0f));
         model = model.translate(new Vec3(-0.5f, -0.5f, -0.5f));
     }
-    
+
     Mat4 MVP;
 
     // shader locations
-    int verticesID; // input of vertexShader
-    int matrixID;   // uniform location of MVP matrix
-    int texID;
-    int timeID;
-    
+    final int verticesID = 0; // input of vertexShader
+    int matrixID;
+    int rcMvpLoc;
+
     int screenSizeLoc;
-    int stepSizeLoc;
     int transferFuncLoc;
     int backFaceLoc;
     int volumeLoc;
     int gradientsLoc;
+    private int VLoc;
+    private int normalMatrixLoc;
+
+    private RayCastingLocations rcLoc;
 
     VisualizationMouseInputAdapter mAdapter;
     Camera camera;
 
     // The fullscreen quad's FBO
     static final float[] g_quad_vertex_buffer_data = {
-        -1.0f, -1.0f, 0.0f,
-        1.0f, -1.0f, 0.0f,
-        -1.0f, 1.0f, 0.0f,
-        -1.0f, 1.0f, 0.0f,
-        1.0f, -1.0f, 0.0f,
-        1.0f, 1.0f, 0.0f,};
+            -1.0f, -1.0f, 0.0f,
+            1.0f, -1.0f, 0.0f,
+            -1.0f, 1.0f, 0.0f,
+            -1.0f, 1.0f, 0.0f,
+            1.0f, -1.0f, 0.0f,
+            1.0f, 1.0f, 0.0f,};
 
-    IntBuffer quad_vertexbuffer = IntBuffer.allocate(1);
-    VolumeData vData;
-    private int VLoc;
-    private int normalMatrixLoc;
-    
+    private IntBuffer quad_vertexbuffer = IntBuffer.allocate(1);
+    private VolumeData vData;
+
     public VisualizationPanel(Dimension dimension) throws GLException {
-        super(new GLCapabilities(GLProfile.get(GLProfile.GL3)));
-        GLProfile profile = GLProfile.getMaxProgrammable(true);
-        GLCapabilities capabilities = new GLCapabilities(profile);
-
-
+        super(new GLCapabilities(GLProfile.getMaxProgrammableCore(true)));
+//        GLCapabilities caps =  new GLCapabilities(GLProfile.getMaxProgrammableCore(true));
         st = new ShaderState();
         setPreferredSize(dimension);
         addGLEventListener(this);
@@ -132,23 +127,25 @@ public class VisualizationPanel extends GLCanvas implements GLEventListener {
         addMouseListener(mAdapter);
         addMouseMotionListener(mAdapter);
         addMouseWheelListener(mAdapter);
-        
+
         vData = new VolumeData();
     }
 
     @Override
     public void init(GLAutoDrawable drawable) throws GLException {
 
-        GL3 gl = drawable.getGL().getGL3();
+        GL4 gl = drawable.getGL().getGL4();
+//        drawable.setGL(new DebugGL4(gl));
+        gl = drawable.getGL().getGL4();
 
         initShaders(gl);
         cubeVAO = initCube(gl);
 
         tfTextureID = initTransferFunction(gl);
-        volumeTextureID = initVolumeTexture(gl, null, IMG_WIDTH, IMG_HEIGHT, IMG_DEPTH);
+        volumeTextureID = initVolumeTexture(gl, IMG_WIDTH, IMG_HEIGHT, IMG_DEPTH);
         gradientsTextureID = initGradients(gl);
         frameBufferID = initFrameBuffer(gl);
-        
+
         // init screen buffer
         // buffer for creating the screen display of redered texture
         gl.glGenBuffers(1, quad_vertexbuffer);
@@ -159,11 +156,11 @@ public class VisualizationPanel extends GLCanvas implements GLEventListener {
 
     @Override
     public void dispose(GLAutoDrawable drawable) {
-        GL3 gl = drawable.getGL().getGL3();
+        GL4 gl = drawable.getGL().getGL4();
         st.destroy(gl);
     }
 
-    private void initShaders(GL3 gl) {
+    private void initShaders(GL4 gl) {
 
         rcProgram = new ShaderProgram();
         ShaderCode vp1 = ShaderCode.create(gl, GL_VERTEX_SHADER, 1, this.getClass(), new String[]{"shaders/raycasting.vert"}, false);
@@ -171,33 +168,26 @@ public class VisualizationPanel extends GLCanvas implements GLEventListener {
         rcProgram.add(gl, vp1, System.err);
         rcProgram.add(gl, fp1, System.err);
         st.attachShaderProgram(gl, rcProgram, true);
-        vp1.destroy(gl);
-        fp1.destroy(gl);
-        
-        screenSizeLoc = st.getUniformLocation(gl, "ScreenSize");
-        stepSizeLoc = st.getUniformLocation(gl, "StepSize");
+
+
+        screenSizeLoc = st.getUniformLocation(gl, "screenSize");
         transferFuncLoc = st.getUniformLocation(gl, "TransferFunc");
-        backFaceLoc = st.getUniformLocation(gl, "ExitPoints");
+        backFaceLoc = st.getUniformLocation(gl, "exitPoints");
         volumeLoc = st.getUniformLocation(gl, "VolumeTex");
         gradientsLoc = st.getUniformLocation(gl, "gradients");
-        verticesID = st.getAttribLocation(gl, "vVertex");
         VLoc = st.getUniformLocation(gl, "V");
         normalMatrixLoc = st.getUniformLocation(gl, "normalMatrix");
-        
+        rcMvpLoc = st.getUniformLocation(gl, "MVP");
 
+
+        // init cube program
         cubeProgram = new ShaderProgram();
-        ShaderCode vp2 = ShaderCode.create(gl, GL_VERTEX_SHADER, 1, this.getClass(), new String[]{"shaders/cube_shader.vert"}, false);
-        ShaderCode fp2 = ShaderCode.create(gl, GL_FRAGMENT_SHADER, 1, this.getClass(), new String[]{"shaders/cube_shader.frag"}, false);
-        cubeProgram.add(gl, vp2, System.err);
-        cubeProgram.add(gl, fp2, System.err);
+        ShaderCode vpc2 = ShaderCode.create(gl, GL_VERTEX_SHADER, 1, this.getClass(), new String[]{"shaders/cube_shader.vert"}, false);
+        ShaderCode fpc2 = ShaderCode.create(gl, GL_FRAGMENT_SHADER, 1, this.getClass(), new String[]{"shaders/cube_shader.frag"}, false);
+        cubeProgram.add(gl, vpc2, System.err);
+        cubeProgram.add(gl, fpc2, System.err);
         st.attachShaderProgram(gl, cubeProgram, true);
-        vp2.destroy(gl);
-        fp2.destroy(gl);
-
-        verticesID = st.getAttribLocation(gl, "vVertex");
         matrixID = st.getUniformLocation(gl, "MVP");
-        texID = st.getUniformLocation(gl, "renderedTexture");
-        timeID = st.getUniformLocation(gl, "time");
     }
 
     // inits the cube which determines the volume.
@@ -212,9 +202,9 @@ public class VisualizationPanel extends GLCanvas implements GLEventListener {
         gl.glGenVertexArrays(1, vaoID);
         gl.glGenBuffers(1, vboVerticesID);
         gl.glGenBuffers(1, vboIndicesID);
-        
+
         UnitCube box = new UnitCube(IMG_WIDTH, IMG_HEIGHT, IMG_DEPTH);
-        
+
         //now allocate buffers
         gl.glBindVertexArray(vaoID.get(0));
         gl.glBindBuffer(GL_ARRAY_BUFFER, vboVerticesID.get(0));
@@ -231,7 +221,7 @@ public class VisualizationPanel extends GLCanvas implements GLEventListener {
         return vaoID.get(0);
     }
 
-    private int initTransferFunction(GL3 gl) {
+    private int initTransferFunction(GL4 gl) {
         TransferFunction tf = new TransferFunction();
 
         IntBuffer tfIDbuff = IntBuffer.allocate(1);
@@ -245,11 +235,11 @@ public class VisualizationPanel extends GLCanvas implements GLEventListener {
 
         return tfIDbuff.get(0);
     }
-    
-    private int initGradients(GL3 gl) {
-        
+
+    private int initGradients(GL4 gl) {
+
         FloatBuffer data = vData.gradientsBuffer();
-        
+
         IntBuffer volumeTextureIDs = IntBuffer.allocate(1);
         gl.glGenTextures(1, volumeTextureIDs);
         // bind 3D texture target
@@ -261,14 +251,13 @@ public class VisualizationPanel extends GLCanvas implements GLEventListener {
         gl.glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_R, GL_REPEAT);
         // pixel transfer happens here from client to OpenGL server
         gl.glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-        
-        
+
         gl.glTexImage3D(GL_TEXTURE_3D, 0, GL_RGB, IMG_WIDTH, IMG_HEIGHT, IMG_DEPTH, 0, GL_RGB, GL_FLOAT, data);
-        
+
         return volumeTextureIDs.get(0);
     }
-    
-    private int initVolumeTexture(GL3 gl, String file, int w, int h, int d) {
+
+    private int initVolumeTexture(GL4 gl, int w, int h, int d) {
         IntBuffer volumeTextureIDs = IntBuffer.allocate(1);
         ByteBuffer buffer = vData.getBuffer();
         gl.glGenTextures(1, volumeTextureIDs);
@@ -281,10 +270,10 @@ public class VisualizationPanel extends GLCanvas implements GLEventListener {
         gl.glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_R, GL_REPEAT);
         // pixel transfer happens here from client to OpenGL server
         gl.glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-        
-        
-        gl.glTexImage3D(GL_TEXTURE_3D, 0, GL_LUMINANCE, w, h, d, 0, GL_LUMINANCE, GL_UNSIGNED_BYTE, buffer);
-        
+
+
+        gl.glTexImage3D(GL_TEXTURE_3D, 0, GL_RED, w, h, d, 0, GL_RED, GL_UNSIGNED_BYTE, buffer);
+
         // mipmapping ???
         gl.glGenerateMipmap(GL_TEXTURE_3D);
         // destroy
@@ -292,11 +281,13 @@ public class VisualizationPanel extends GLCanvas implements GLEventListener {
 
         return volumeTextureIDs.get(0);
     }
-    
+
 
     @Override
     public void display(GLAutoDrawable drawable) {
-        GL3 gl = drawable.getGL().getGL3();
+        GL4 gl = drawable.getGL().getGL4();
+//        drawable.setGL(new DebugGL4(gl));
+//        gl = drawable.getGL().getGL4();
 
         // Render to buffer
         gl.glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -313,7 +304,7 @@ public class VisualizationPanel extends GLCanvas implements GLEventListener {
         drawBox(gl, GL_FRONT);
         st.useProgram(gl, false);
         st.attachShaderProgram(gl, cubeProgram, false); // detach cube program
-        
+
         gl.glBindFramebuffer(GL_FRAMEBUFFER, 0);
         gl.glViewport(0, 0, getWidth(), getHeight());
         gl.glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
@@ -323,26 +314,34 @@ public class VisualizationPanel extends GLCanvas implements GLEventListener {
 
     }
 
-    public void raycasting(GL3 gl) {
-        st.attachShaderProgram(gl, rcProgram, true); // attach cube program
+    public void raycasting(GL4 gl) {
+        st.attachShaderProgram(gl, rcProgram, true);
         st.useProgram(gl, true);
-        gl.glUniformMatrix4fv(matrixID, 1, false, MVP.getBuffer());
-        gl.glUniform2f(screenSizeLoc, (float) getWidth(), (float) getHeight());
+        gl.glUniformMatrix4fv(rcMvpLoc, 1, false, MVP.getBuffer());
+        gl.glUniform2f(
+                screenSizeLoc,
+                (float) getWidth(),
+                (float) getHeight()
+        );
         gl.glUniformMatrix4fv(VLoc, 1, false, camera.getViewMatrix().getBuffer());
-        Mat4 normalMatrix = camera.getViewMatrix().multiply(model).getInverse().transpose();
-        gl.glUniformMatrix4fv(normalMatrixLoc, 1, false, normalMatrix.getBuffer());
-        
-        gl.glUniform1f(stepSizeLoc, stepSize);
+        Mat4 normalMatrix = camera.getViewMatrix()
+                .multiply(model)
+                .getInverse()
+                .transpose();
+        gl.glUniformMatrix4fv(
+                normalMatrixLoc,
+                1,
+                false,
+                normalMatrix.getBuffer()
+        );
+
         // tf uniform
         gl.glActiveTexture(GL_TEXTURE0);
         gl.glBindTexture(GL_TEXTURE_1D, tfTextureID);
         gl.glUniform1i(transferFuncLoc, 0);
-        
+
         // backface texture
         int a = st.getUniformLocation(gl, "exitPoints");
-        //int a = gl.glGetUniformLocation(rcProgram.program(), "exitPoints");
-        
-        //System.out.println(a);
         gl.glActiveTexture(GL_TEXTURE1);
         gl.glBindTexture(GL_TEXTURE_2D, renderedTexture.get(0));
         gl.glUniform1i(a, 1);
@@ -351,19 +350,19 @@ public class VisualizationPanel extends GLCanvas implements GLEventListener {
         gl.glActiveTexture(GL_TEXTURE2);
         gl.glBindTexture(GL_TEXTURE_3D, volumeTextureID);
         gl.glUniform1i(volumeLoc, 2);
-        
+
         // gradients texture
-        //gl.glActiveTexture(GL_TEXTURE3);
-        //gl.glBindTexture(GL_TEXTURE_3D, gradientsTextureID);
-        //gl.glUniform1i(gradientsLoc, 3);
-        
-        // drawBox(gl, GL_BACK);
+        gl.glActiveTexture(GL_TEXTURE3);
+        gl.glBindTexture(GL_TEXTURE_3D, gradientsTextureID);
+        gl.glUniform1i(gradientsLoc, 3);
+
+        drawBox(gl, GL_BACK);
         st.useProgram(gl, false);
         st.attachShaderProgram(gl, rcProgram, false); // detach raycasting program
     }
-    
 
-    void drawBox(GL3 gl, int face) {
+
+    private void drawBox(GL3 gl, int face) {
         gl.glEnable(GL_CULL_FACE);
         gl.glCullFace(face);
         gl.glBindVertexArray(cubeVAO);
@@ -378,7 +377,7 @@ public class VisualizationPanel extends GLCanvas implements GLEventListener {
         gl.glViewport(0, 0, w, h);
         float aspect = (float) w / (float) h;
         camera.setupProjection(45f, aspect, 1, 500);
-        
+
         frameBufferID = initFrameBuffer(gl);
     }
 
@@ -424,7 +423,6 @@ public class VisualizationPanel extends GLCanvas implements GLEventListener {
         return FramebufferName.get(0);
     }
 
-    
 
     private class VisualizationMouseInputAdapter extends MouseInputAdapter {
 
@@ -475,6 +473,29 @@ public class VisualizationPanel extends GLCanvas implements GLEventListener {
             camera.zoom(e.getWheelRotation());
         }
 
+    }
+
+
+    private class RayCastingLocations {
+        private final String fragmentShader = "shaders/raycasting.frag";
+        private final String vertexShader = "shaders/raycasting.vert";
+        private ShaderProgram program;
+
+        public void init(GL4 gl) {
+            program = new ShaderProgram();
+            ShaderCode vp = ShaderCode.create(
+                    gl, GL_VERTEX_SHADER, 1, this.getClass(), new String[]{vertexShader}, false
+            );
+            ShaderCode fp = ShaderCode.create(
+                    gl, GL_FRAGMENT_SHADER, 1, this.getClass(), new String[]{fragmentShader}, false
+            );
+            rcProgram.add(gl, vp, System.err);
+            rcProgram.add(gl, fp, System.err);
+        }
+
+        public ShaderProgram program() {
+            return this.program;
+        }
     }
 
 }

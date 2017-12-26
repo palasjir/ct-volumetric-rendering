@@ -25,7 +25,7 @@ public class VolumeData {
 
     //data size
     public static final int IMG_WIDTH = 256;
-    public static final int IMG_HEIGH = 256;
+    public static final int IMG_HEIGHT = 256;
     public static final int IMG_DEPTH = 2 * 113;
     public static final int IMG_VOXELS = IMG_WIDTH * IMG_DEPTH * IMG_WIDTH;
     public static final float MAX_VALUE = 3272.0f;
@@ -40,7 +40,7 @@ public class VolumeData {
     }
 
     private void loadImages() {
-        data = new int[IMG_WIDTH][IMG_HEIGH][IMG_DEPTH];
+        data = new int[IMG_WIDTH][IMG_HEIGHT][IMG_DEPTH];
 
         BufferedImage tempImage;
         WritableRaster tempRaster;
@@ -79,9 +79,9 @@ public class VolumeData {
     }
 
     public ByteBuffer getBuffer() {
-        ByteBuffer buffer = ByteBuffer.allocate(IMG_WIDTH * IMG_HEIGH * IMG_DEPTH * pixelsInBuffer);
+        ByteBuffer buffer = ByteBuffer.allocate(IMG_WIDTH * IMG_HEIGHT * IMG_DEPTH * pixelsInBuffer);
         for (int z = 1; z < IMG_DEPTH; z++) {
-            for (int y = 0; y < IMG_HEIGH; y++) {
+            for (int y = 0; y < IMG_HEIGHT; y++) {
                 for (int x = 0; x < IMG_WIDTH; x++) {
 
                     buffer.put(scaleToByte(data[x][y][z]));
@@ -102,10 +102,10 @@ public class VolumeData {
         FloatBuffer buffer = FloatBuffer.allocate(IMG_VOXELS * 3);
 
         for (int z = 0; z < IMG_DEPTH; z++) {
-                for (int y = 0; y < IMG_HEIGH; y++) {
+                for (int y = 0; y < IMG_HEIGHT; y++) {
                     for (int x = 0; x < IMG_WIDTH; x++) {
                     buffer.put((float) ((x == 0 || x == IMG_WIDTH - 1) ? 0 : (data[x - 1][y][z] - data[x + 1][y][z])));
-                    buffer.put((float) ((y == 0 || y == IMG_HEIGH - 1) ? 0 : (data[x][y - 1][z] - data[x][y + 1][z])));
+                    buffer.put((float) ((y == 0 || y == IMG_HEIGHT - 1) ? 0 : (data[x][y - 1][z] - data[x][y + 1][z])));
                     buffer.put((float) ((z == 0 || z == IMG_DEPTH - 1) ? 0 : (data[x][y][z - 1] - data[x][y][z + 1])));
                 }
             }

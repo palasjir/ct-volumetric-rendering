@@ -34,13 +34,12 @@ public class Main {
       SwingUtilities.invokeLater(new Runnable() {
          @Override
          public void run() {
-            // Create the OpenGL rendering canvas
 
-
+             // Create the OpenGL rendering canvas
             GLCanvas canvas = new VisualizationPanel(new Dimension(CANVAS_WIDTH, CANVAS_HEIGHT));
  
             // Create a animator that drives canvas' display() at the specified FPS.
-            final FPSAnimator animator = new FPSAnimator(canvas, 50, true);
+            final FPSAnimator animator = new FPSAnimator(canvas, 30, true);
  
             // Create the top-level container
             final JFrame frame = new JFrame(); // Swing's JFrame or AWT's Frame
@@ -59,7 +58,7 @@ public class Main {
                   }.start();
                }
             });
-            frame.setTitle("Jogl learning window");
+            frame.setTitle("CT Visualizer");
             frame.pack();
             frame.setVisible(true);
             animator.start(); // start the animation loop

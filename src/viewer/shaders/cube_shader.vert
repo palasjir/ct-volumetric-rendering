@@ -1,14 +1,15 @@
 #version 330 core
 
-layout(location = 0) in vec3 vVertex;  //object space vertex position
+layout(location = 0) in vec3 vVertex;
 
-uniform mat4 MVP;  //combined modelview projection matrix
+//combined modelview projection matrix
+uniform mat4 MVP;
 
 out vec3 vColor;
 
 void main()
 { 	 
 	//get clipspace position
-        vColor = vVertex;
+    vColor = vVertex;
 	gl_Position = MVP*vec4(vVertex.xyz,1); 
 }
