@@ -6,8 +6,6 @@ import com.hackoeur.jglm.Vec3;
 import com.jogamp.common.nio.Buffers;
 import com.jogamp.opengl.*;
 import com.jogamp.opengl.awt.GLCanvas;
-import com.jogamp.opengl.util.glsl.ShaderCode;
-import com.jogamp.opengl.util.glsl.ShaderProgram;
 import com.jogamp.opengl.util.glsl.ShaderState;
 
 import java.awt.Dimension;
@@ -34,7 +32,7 @@ public class VisualizationPanel extends GLCanvas implements GLEventListener {
     private IntBuffer renderedTexture = IntBuffer.allocate(1);
 
     private ShaderState st;
-    private ShaderProgramHelper rcProgram;
+    private ShaderProgramHelper rayProgram;
     private ShaderProgramHelper cubeProgram;
 
     private Mat4 model;
@@ -120,12 +118,14 @@ public class VisualizationPanel extends GLCanvas implements GLEventListener {
     }
 
     private void initShaders(GL4 gl) {
+        initRaycastingProgram(gl);
+        initCubeProgram(gl);
+    }
 
-        // init raycasting program
-        rcProgram = new ShaderProgramHelper("raycasting.vert", "raycasting.frag");
-        rcProgram.init(gl);
-
-        st.attachShaderProgram(gl, rcProgram.program(), true);
+    private void initRaycastingProgram(GL4 gl) {
+        rayProgram = new ShaderProgramHelper("raycasting.vert", "raycasting.frag");
+        rayProgram.init(gl);
+        st.attachShaderProgram(gl, rayProgram.program(), true);
         screenSizeLoc = st.getUniformLocation(gl, "screenSize");
         transferFuncLoc = st.getUniformLocation(gl, "TransferFunc");
         backFaceLoc = st.getUniformLocation(gl, "exitPoints");
@@ -134,43 +134,55 @@ public class VisualizationPanel extends GLCanvas implements GLEventListener {
         VLoc = st.getUniformLocation(gl, "V");
         normalMatrixLoc = st.getUniformLocation(gl, "normalMatrix");
         rcMvpLoc = st.getUniformLocation(gl, "MVP");
+    }
 
-        // init cube program
+    private void initCubeProgram(GL4 gl) {
         cubeProgram = new ShaderProgramHelper("cube_shader.vert", "cube_shader.frag");
         cubeProgram.init(gl);
         st.attachShaderProgram(gl, cubeProgram.program(), true);
         matrixID = st.getUniformLocation(gl, "MVP");
     }
 
-    // inits the cube which determines the volume.
+    /**
+     * Initializes the cube which determines the volume.
+     *
+     * @param gl GL Interface
+     * @return VAO ID
+     */
     private int initCube(GL3 gl) {
 
-        // allocate id's
-        IntBuffer vaoID = IntBuffer.allocate(1);
-        IntBuffer vboVerticesID = IntBuffer.allocate(1);
-        IntBuffer vboIndicesID = IntBuffer.allocate(1);
-
-        // generate id's
-        gl.glGenVertexArrays(1, vaoID);
-        gl.glGenBuffers(1, vboVerticesID);
-        gl.glGenBuffers(1, vboIndicesID);
+        int vaoId = genVerticesId(gl);
+        int vboVId = genBufferId(gl);
+        int vboIId = genBufferId(gl);
 
         UnitCube box = new UnitCube(VolumeData.IMG_WIDTH, VolumeData.IMG_HEIGHT, VolumeData.IMG_DEPTH);
 
         //now allocate buffers
-        gl.glBindVertexArray(vaoID.get(0));
-        gl.glBindBuffer(GL_ARRAY_BUFFER, vboVerticesID.get(0));
+        gl.glBindVertexArray(vaoId);
+        gl.glBindBuffer(GL_ARRAY_BUFFER, vboVId);
         gl.glBufferData(GL_ARRAY_BUFFER, 24 * Float.SIZE, FloatBuffer.wrap(box.vertices), GL_STATIC_DRAW);
 
         gl.glEnableVertexAttribArray(verticesID);
         gl.glVertexAttribPointer(verticesID, 3, GL_FLOAT, false, 0, 0);
 
-        gl.glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vboIndicesID.get(0));
+        gl.glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vboIId);
         gl.glBufferData(GL_ELEMENT_ARRAY_BUFFER, 36 * Buffers.SIZEOF_INT, IntBuffer.wrap(UnitCube.indices), GL_STATIC_DRAW);
         gl.glBindVertexArray(0);
 
         // return id of vao to be used for rendering
-        return vaoID.get(0);
+        return vaoId;
+    }
+
+    private int genBufferId(GL gl) {
+        IntBuffer buffer = IntBuffer.allocate(1);
+        gl.glGenBuffers(1, buffer);
+        return buffer.get(0);
+    }
+
+    private int genVerticesId(GL3 gl) {
+        IntBuffer buffer = IntBuffer.allocate(1);
+        gl.glGenVertexArrays(1, buffer);
+        return buffer.get(0);
     }
 
     private int initTransferFunction(GL4 gl) {
@@ -189,47 +201,46 @@ public class VisualizationPanel extends GLCanvas implements GLEventListener {
     }
 
     private int initGradients(GL4 gl) {
-
-        FloatBuffer data = volumeData.gradientsBuffer();
-
         IntBuffer volumeTextureIDs = IntBuffer.allocate(1);
         gl.glGenTextures(1, volumeTextureIDs);
+        int id = volumeTextureIDs.get(0);
+
         // bind 3D texture target
-        gl.glBindTexture(GL_TEXTURE_3D, volumeTextureIDs.get(0));
+        gl.glBindTexture(GL_TEXTURE_3D, id);
         gl.glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
         gl.glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
         gl.glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_S, GL_REPEAT);
         gl.glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_T, GL_REPEAT);
         gl.glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_R, GL_REPEAT);
+
         // pixel transfer happens here from client to OpenGL server
         gl.glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-
+        FloatBuffer data = volumeData.gradientsBuffer();
         gl.glTexImage3D(GL_TEXTURE_3D, 0, GL_RGB, VolumeData.IMG_WIDTH, VolumeData.IMG_HEIGHT, VolumeData.IMG_DEPTH, 0, GL_RGB, GL_FLOAT, data);
 
-        return volumeTextureIDs.get(0);
+        return id;
     }
 
     private int initVolumeTexture(GL4 gl, int w, int h, int d) {
         IntBuffer volumeTextureIDs = IntBuffer.allocate(1);
-        ByteBuffer buffer = volumeData.getBuffer();
         gl.glGenTextures(1, volumeTextureIDs);
+        int id = volumeTextureIDs.get(0);
+
         // bind 3D texture target
-        gl.glBindTexture(GL_TEXTURE_3D, volumeTextureIDs.get(0));
+        gl.glBindTexture(GL_TEXTURE_3D, id);
         gl.glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
         gl.glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
         gl.glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_S, GL_REPEAT);
         gl.glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_T, GL_REPEAT);
         gl.glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_R, GL_REPEAT);
+
         // pixel transfer happens here from client to OpenGL server
         gl.glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-
-
+        ByteBuffer buffer = volumeData.getBuffer();
         gl.glTexImage3D(GL_TEXTURE_3D, 0, GL_RED, w, h, d, 0, GL_RED, GL_UNSIGNED_BYTE, buffer);
-
-        // mipmapping ???
         gl.glGenerateMipmap(GL_TEXTURE_3D);
 
-        return volumeTextureIDs.get(0);
+        return id;
     }
 
 
@@ -264,7 +275,7 @@ public class VisualizationPanel extends GLCanvas implements GLEventListener {
     }
 
     private void raycasting(GL4 gl) {
-        st.attachShaderProgram(gl, rcProgram.program(), true);
+        st.attachShaderProgram(gl, rayProgram.program(), true);
         st.useProgram(gl, true);
         gl.glUniformMatrix4fv(rcMvpLoc, 1, false, MVP.getBuffer());
         gl.glUniform2f(
@@ -311,9 +322,8 @@ public class VisualizationPanel extends GLCanvas implements GLEventListener {
 
         drawBox(gl, GL_BACK);
         st.useProgram(gl, false);
-        st.attachShaderProgram(gl, rcProgram.program(), false); // detach raycasting program
+        st.attachShaderProgram(gl, rayProgram.program(), false); // detach raycasting program
     }
-
 
     private void drawBox(GL3 gl, int face) {
         gl.glEnable(GL_CULL_FACE);
@@ -338,9 +348,11 @@ public class VisualizationPanel extends GLCanvas implements GLEventListener {
 
     private int initFrameBuffer(GL3 gl) {
         // The framebuffer, which regroups 0, 1, or more textures, and 0 or 1 depth buffer.
-        IntBuffer FramebufferName = IntBuffer.allocate(1);
-        gl.glGenFramebuffers(1, FramebufferName);
-        gl.glBindFramebuffer(GL_FRAMEBUFFER, FramebufferName.get(0));
+        IntBuffer frameBufferName = IntBuffer.allocate(1);
+        gl.glGenFramebuffers(1, frameBufferName);
+        int id = frameBufferName.get(0);
+
+        gl.glBindFramebuffer(GL_FRAMEBUFFER, id);
 
         // The texture we're going to render to
         gl.glGenTextures(1, renderedTexture);
@@ -358,11 +370,11 @@ public class VisualizationPanel extends GLCanvas implements GLEventListener {
         gl.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
         // The depth buffer
-        IntBuffer depthrenderbuffer = IntBuffer.allocate(1);
-        gl.glGenRenderbuffers(1, depthrenderbuffer);
-        gl.glBindRenderbuffer(GL_RENDERBUFFER, depthrenderbuffer.get(0));
+        IntBuffer depthRenderBuffer = IntBuffer.allocate(1);
+        gl.glGenRenderbuffers(1, depthRenderBuffer);
+        gl.glBindRenderbuffer(GL_RENDERBUFFER, depthRenderBuffer.get(0));
         gl.glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, viewPortWidth, viewPortHeight);
-        gl.glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, depthrenderbuffer.get(0));
+        gl.glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, depthRenderBuffer.get(0));
         gl.glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, renderedTexture.get(0), 0);
 
         // Set the list of draw buffers.
@@ -375,7 +387,7 @@ public class VisualizationPanel extends GLCanvas implements GLEventListener {
 
         gl.glEnable(GL_DEPTH_TEST);
 
-        return FramebufferName.get(0);
+        return id;
     }
 
 }
