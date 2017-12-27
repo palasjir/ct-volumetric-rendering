@@ -26,7 +26,7 @@ public class VisualizationPanel extends GLCanvas implements GLEventListener {
     private int viewPortWidth;
     private int viewPortHeight;
 
-    private int frameBufferID;
+    private int frameBufferId;
     private int tfTextureID;
     private int volumeTextureID;
     private int gradientsTextureID;
@@ -40,10 +40,11 @@ public class VisualizationPanel extends GLCanvas implements GLEventListener {
     private Mat4 model;
     private Mat4 MVP;
     private Camera camera;
+    private VolumeData volumeData;
 
     // shader locations
-    private int matrixID;
-    private int rcMvpLoc;
+    private int cubeMvpLoc;
+    private int rayMvpLoc;
     private int screenSizeLoc;
     private int transferFuncLoc;
     private int backFaceLoc;
@@ -51,8 +52,6 @@ public class VisualizationPanel extends GLCanvas implements GLEventListener {
     private int gradientsLoc;
     private int VLoc;
     private int normalMatrixLoc;
-
-    private VolumeData volumeData;
 
     public VisualizationPanel(Dimension dimension) throws GLException {
         super(new GLCapabilities(GLProfile.getMaxProgrammableCore(true)));
@@ -83,7 +82,7 @@ public class VisualizationPanel extends GLCanvas implements GLEventListener {
         tfTextureID = initTransferFunction(gl);
         volumeTextureID = initVolumeTexture(gl, VolumeData.IMG_WIDTH, VolumeData.IMG_HEIGHT, VolumeData.IMG_DEPTH);
         gradientsTextureID = initGradients(gl);
-        frameBufferID = initFrameBuffer(gl);
+        frameBufferId = initFrameBuffer(gl);
         initScreenBuffer(gl);
     }
 
@@ -91,27 +90,11 @@ public class VisualizationPanel extends GLCanvas implements GLEventListener {
     public void display(GLAutoDrawable drawable) {
         GL4 gl = getGL(drawable);
 
-        // Render to buffer
-        gl.glBindFramebuffer(GL_FRAMEBUFFER, 0);
-        gl.glBindFramebuffer(GL_FRAMEBUFFER, frameBufferID);
-        gl.glViewport(0, 0, viewPortWidth, viewPortHeight); // Render on the whole framebuffer, complete from the lower left corner to the upper right
-        gl.glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
         MVP = camera.mvp(model);
 
-        // draw cube to frame buffer
-        st.attachShaderProgram(gl, cubeProgram.program(), true); // attach cube program
-        st.useProgram(gl, true);
-        gl.glUniformMatrix4fv(matrixID, 1, false, MVP.getBuffer());
-        drawBox(gl, GL_FRONT);
-        st.useProgram(gl, false);
-        st.attachShaderProgram(gl, cubeProgram.program(), false); // detach cube program
-
-        gl.glBindFramebuffer(GL_FRAMEBUFFER, 0);
-        gl.glViewport(0, 0, viewPortWidth, viewPortHeight);
-        gl.glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
-        gl.glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
+        activateFrameBuffer(gl, frameBufferId);
+        drawCube(gl); // draw cube to frame buffer
+        clearFrameBuffer(gl);
         raycasting(gl);
     }
 
@@ -121,10 +104,8 @@ public class VisualizationPanel extends GLCanvas implements GLEventListener {
         viewPortWidth = w;
         viewPortHeight = h;
         gl.glViewport(0, 0, w, h);
-        float aspect = (float) w / (float) h;
-        camera.setupProjection(45f, aspect, 1, 500);
-
-        frameBufferID = initFrameBuffer(gl);
+        camera.setupProjection(45f, aspect(w, h), 1, 500);
+        frameBufferId = initFrameBuffer(gl);
     }
 
     @Override
@@ -169,14 +150,14 @@ public class VisualizationPanel extends GLCanvas implements GLEventListener {
         gradientsLoc = st.getUniformLocation(gl, "gradients");
         VLoc = st.getUniformLocation(gl, "V");
         normalMatrixLoc = st.getUniformLocation(gl, "normalMatrix");
-        rcMvpLoc = st.getUniformLocation(gl, "MVP");
+        rayMvpLoc = st.getUniformLocation(gl, "MVP");
     }
 
     private void initCubeProgram(GL4 gl) {
         cubeProgram = new ShaderProgramHelper("cube_shader.vert", "cube_shader.frag");
         cubeProgram.init(gl);
         st.attachShaderProgram(gl, cubeProgram.program(), true);
-        matrixID = st.getUniformLocation(gl, "MVP");
+        cubeMvpLoc = st.getUniformLocation(gl, "MVP");
     }
 
     /**
@@ -265,7 +246,7 @@ public class VisualizationPanel extends GLCanvas implements GLEventListener {
     private void raycasting(GL4 gl) {
         st.attachShaderProgram(gl, rayProgram.program(), true);
         st.useProgram(gl, true);
-        gl.glUniformMatrix4fv(rcMvpLoc, 1, false, MVP.getBuffer());
+        gl.glUniformMatrix4fv(rayMvpLoc, 1, false, MVP.getBuffer());
         gl.glUniform2f(
                 screenSizeLoc,
                 (float) viewPortWidth,
@@ -369,6 +350,35 @@ public class VisualizationPanel extends GLCanvas implements GLEventListener {
             drawable.setGL(new DebugGL4(gl));
         }
         return drawable.getGL().getGL4();
+    }
+
+    private void clearFrameBuffer(GL gl) {
+        gl.glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        gl.glViewport(0, 0, viewPortWidth, viewPortHeight);
+        gl.glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
+        gl.glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    }
+
+    private void drawCube(GL3 gl) {
+        st.attachShaderProgram(gl, cubeProgram.program(), true); // attach cube program
+        st.useProgram(gl, true);
+        gl.glUniformMatrix4fv(cubeMvpLoc, 1, false, MVP.getBuffer());
+        drawBox(gl, GL_FRONT);
+        st.useProgram(gl, false);
+        st.attachShaderProgram(gl, cubeProgram.program(), false); // detach cube program
+    }
+
+    private void activateFrameBuffer(GL gl, int frameBufferId) {
+        // Render to buffer
+        gl.glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        gl.glBindFramebuffer(GL_FRAMEBUFFER, frameBufferId);
+        // Render on the whole framebuffer, complete from the lower left corner to the upper right
+        gl.glViewport(0, 0, viewPortWidth, viewPortHeight);
+        gl.glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    }
+
+    private float aspect(int w, int h) {
+        return (float) w / (float) h;
     }
 
 }
