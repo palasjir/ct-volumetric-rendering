@@ -8,7 +8,7 @@ import java.awt.*
 import java.awt.event.MouseEvent
 import java.awt.event.MouseWheelEvent
 
-class VisualisationMouseInputAdapter(private val camera: Camera) : MouseInputAdapter() {
+class MouseAdapter(private val camera: Camera) : MouseInputAdapter() {
 
     private var start: Point? = null
     private var end: Point? = null

@@ -66,7 +66,7 @@ constructor(
         viewPortHeight = dimension.height
         addGLEventListener(this)
         
-        val mAdapter = VisualisationMouseInputAdapter(camera)
+        val mAdapter = MouseAdapter(camera)
         addMouseListener(mAdapter)
         addMouseMotionListener(mAdapter)
         addMouseWheelListener(mAdapter)
