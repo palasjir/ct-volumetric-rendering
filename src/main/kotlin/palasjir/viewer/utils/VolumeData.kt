@@ -1,7 +1,5 @@
 package palasjir.viewer.utils
 
-import java.awt.image.BufferedImage
-import java.awt.image.WritableRaster
 import java.io.File
 import java.io.IOException
 import java.nio.ByteBuffer
