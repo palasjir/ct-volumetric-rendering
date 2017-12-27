@@ -16,6 +16,7 @@ import java.nio.IntBuffer;
 import static com.jogamp.opengl.GL.*;
 import static com.jogamp.opengl.GL2ES2.*;
 import static com.jogamp.opengl.GL2GL3.*;
+import static viewer.Utils.*;
 
 public class VisualizationPanel extends GLCanvas implements GLEventListener {
 
@@ -29,7 +30,7 @@ public class VisualizationPanel extends GLCanvas implements GLEventListener {
     private int volumeTextureID;
     private int gradientsTextureID;
     private int cubeVAO;
-    private IntBuffer renderedTexture = IntBuffer.allocate(1);
+    private int renderedTextureID;
 
     private ShaderState st;
     private ShaderProgramHelper rayProgram;
@@ -151,7 +152,7 @@ public class VisualizationPanel extends GLCanvas implements GLEventListener {
      */
     private int initCube(GL3 gl) {
 
-        int vaoId = genVerticesId(gl);
+        int vaoId = genVertexArraysId(gl);
         int vboVId = genBufferId(gl);
         int vboIId = genBufferId(gl);
 
@@ -173,37 +174,22 @@ public class VisualizationPanel extends GLCanvas implements GLEventListener {
         return vaoId;
     }
 
-    private int genBufferId(GL gl) {
-        IntBuffer buffer = IntBuffer.allocate(1);
-        gl.glGenBuffers(1, buffer);
-        return buffer.get(0);
-    }
-
-    private int genVerticesId(GL3 gl) {
-        IntBuffer buffer = IntBuffer.allocate(1);
-        gl.glGenVertexArrays(1, buffer);
-        return buffer.get(0);
-    }
-
     private int initTransferFunction(GL4 gl) {
         TransferFunction tf = new TransferFunction();
+        int id = genTextureId(gl);
 
-        IntBuffer tfIDbuff = IntBuffer.allocate(1);
-        gl.glGenTextures(1, tfIDbuff);
-        gl.glBindTexture(GL_TEXTURE_1D, tfIDbuff.get(0));
+        gl.glBindTexture(GL_TEXTURE_1D, id);
         gl.glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
         gl.glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
         gl.glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
         gl.glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
         gl.glTexImage1D(GL_TEXTURE_1D, 0, GL_RGBA, 256, 0, GL_RGBA, GL_UNSIGNED_BYTE, tf.getBuffer());
 
-        return tfIDbuff.get(0);
+        return id;
     }
 
     private int initGradients(GL4 gl) {
-        IntBuffer volumeTextureIDs = IntBuffer.allocate(1);
-        gl.glGenTextures(1, volumeTextureIDs);
-        int id = volumeTextureIDs.get(0);
+        int id = genTextureId(gl);
 
         // bind 3D texture target
         gl.glBindTexture(GL_TEXTURE_3D, id);
@@ -222,9 +208,7 @@ public class VisualizationPanel extends GLCanvas implements GLEventListener {
     }
 
     private int initVolumeTexture(GL4 gl, int w, int h, int d) {
-        IntBuffer volumeTextureIDs = IntBuffer.allocate(1);
-        gl.glGenTextures(1, volumeTextureIDs);
-        int id = volumeTextureIDs.get(0);
+        int id = genTextureId(gl);
 
         // bind 3D texture target
         gl.glBindTexture(GL_TEXTURE_3D, id);
@@ -307,7 +291,7 @@ public class VisualizationPanel extends GLCanvas implements GLEventListener {
 
         // backface texture
         gl.glActiveTexture(GL_TEXTURE1);
-        gl.glBindTexture(GL_TEXTURE_2D, renderedTexture.get(0));
+        gl.glBindTexture(GL_TEXTURE_2D, renderedTextureID);
         gl.glUniform1i(backFaceLoc, 1);
 
         // volume texture
@@ -348,17 +332,15 @@ public class VisualizationPanel extends GLCanvas implements GLEventListener {
 
     private int initFrameBuffer(GL3 gl) {
         // The framebuffer, which regroups 0, 1, or more textures, and 0 or 1 depth buffer.
-        IntBuffer frameBufferName = IntBuffer.allocate(1);
-        gl.glGenFramebuffers(1, frameBufferName);
-        int id = frameBufferName.get(0);
+        int id = genFrameBufferId(gl);
 
         gl.glBindFramebuffer(GL_FRAMEBUFFER, id);
 
         // The texture we're going to render to
-        gl.glGenTextures(1, renderedTexture);
+        renderedTextureID = genTextureId(gl);
 
         // "Bind" the newly created texture : all future texture functions will modify this texture
-        gl.glBindTexture(GL_TEXTURE_2D, renderedTexture.get(0));
+        gl.glBindTexture(GL_TEXTURE_2D, renderedTextureID);
 
         // Give an empty image to OpenGL ( the last "0" means "empty" )
         gl.glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, viewPortWidth, viewPortHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, null);
@@ -370,12 +352,11 @@ public class VisualizationPanel extends GLCanvas implements GLEventListener {
         gl.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
         // The depth buffer
-        IntBuffer depthRenderBuffer = IntBuffer.allocate(1);
-        gl.glGenRenderbuffers(1, depthRenderBuffer);
-        gl.glBindRenderbuffer(GL_RENDERBUFFER, depthRenderBuffer.get(0));
+        int depthRenderBufferId = genRenderBufferId(gl);
+        gl.glBindRenderbuffer(GL_RENDERBUFFER, depthRenderBufferId);
         gl.glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, viewPortWidth, viewPortHeight);
-        gl.glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, depthRenderBuffer.get(0));
-        gl.glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, renderedTexture.get(0), 0);
+        gl.glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, depthRenderBufferId);
+        gl.glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, renderedTextureID, 0);
 
         // Set the list of draw buffers.
         int[] DrawBuffers = {GL_COLOR_ATTACHMENT0};
