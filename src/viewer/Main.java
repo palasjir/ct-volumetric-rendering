@@ -43,15 +43,14 @@ public class Main {
             // Create the top-level container
             final JFrame frame = new JFrame(); // Swing's JFrame or AWT's Frame
             frame.getContentPane().add(canvas);
+            final Thread closingThread = new Thread(() -> {
+                if (animator.isStarted()) animator.stop();
+                System.exit(0);
+            });
             frame.addWindowListener(new WindowAdapter() {
                 @Override
                 public void windowClosing(WindowEvent e) {
-                    // Use a dedicate thread to run the stop() to ensure that the
-                    // animator stops before program exits.
-                    new Thread(() -> {
-                        if (animator.isStarted()) animator.stop();
-                        System.exit(0);
-                    }).start();
+                    closingThread.start();
                 }
             });
             frame.setTitle("CT Viewer");
