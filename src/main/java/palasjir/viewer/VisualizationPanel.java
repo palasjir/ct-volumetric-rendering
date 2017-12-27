@@ -7,6 +7,7 @@ import com.jogamp.common.nio.Buffers;
 import com.jogamp.opengl.*;
 import com.jogamp.opengl.awt.GLCanvas;
 import com.jogamp.opengl.util.glsl.ShaderState;
+import palasjir.viewer.coordinates.Camera;
 
 import java.awt.Dimension;
 import java.nio.ByteBuffer;

@@ -1,5 +1,7 @@
 package palasjir.viewer;
 
+import palasjir.viewer.coordinates.Camera;
+
 import javax.swing.*;
 import javax.swing.event.MouseInputAdapter;
 import java.awt.*;

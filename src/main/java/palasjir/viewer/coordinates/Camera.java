@@ -1,4 +1,4 @@
-package palasjir.viewer;
+package palasjir.viewer.coordinates;
 
 import com.hackoeur.jglm.Mat4;
 import com.hackoeur.jglm.Matrices;
