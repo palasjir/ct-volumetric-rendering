@@ -19,15 +19,8 @@ public class ShaderProgramHelper {
 
     public void init(GL4 gl) {
         program = new ShaderProgram();
-
-        ShaderCode vp = ShaderCode.create(
-                gl, GL_VERTEX_SHADER, 1, this.getClass(), new String[]{shaderName(vertexShader)}, false
-        );
-        ShaderCode fp = ShaderCode.create(
-                gl, GL_FRAGMENT_SHADER, 1, this.getClass(), new String[]{shaderName(fragmentShader)}, false
-        );
-        program.add(gl, vp, System.err);
-        program.add(gl, fp, System.err);
+        add(gl, GL_VERTEX_SHADER, vertexShader);
+        add(gl, GL_FRAGMENT_SHADER, fragmentShader);
     }
 
     public ShaderProgram program() {
@@ -36,5 +29,21 @@ public class ShaderProgramHelper {
 
     private String shaderName(String name) {
         return "shaders/" + name;
+    }
+
+    private ShaderCode create(GL4 gl, int type, String name) {
+        return ShaderCode.create(
+                gl,
+                type,
+                1,
+                this.getClass(),
+                new String[]{shaderName(name)},
+                false
+        );
+    }
+
+    private void add(GL4 gl, int type, String name) {
+        ShaderCode code = create(gl, type, name);
+        program.add(gl, code, System.err);
     }
 }
