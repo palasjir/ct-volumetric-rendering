@@ -74,9 +74,10 @@ public class VisualizationPanel extends GLCanvas implements GLEventListener {
 
         volumeData = new VolumeData();
 
-        model = new Mat4(1.0f);
         Mat4 rot = Matrices.rotate(90.0f, new Vec3(1.0f, 0.0f, 0.0f));
-        model = model.multiply(rot);
+
+        model = new Mat4(1.0f);
+        model = rot.multiply(model);
         model = model.translate(new Vec3(-0.5f, -0.5f, -0.5f));
     }
 
