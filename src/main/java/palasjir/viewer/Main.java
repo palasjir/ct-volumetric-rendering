@@ -3,6 +3,7 @@ package palasjir.viewer;
 
 import com.jogamp.opengl.awt.GLCanvas;
 import com.jogamp.opengl.util.FPSAnimator;
+import palasjir.viewer.ui.VisualizationPanel;
 
 import java.awt.Dimension;
 import java.awt.event.WindowAdapter;
@@ -25,7 +26,7 @@ public class Main {
             final Dimension dimension = new Dimension(CANVAS_WIDTH, CANVAS_HEIGHT);
             final GLCanvas canvas = new VisualizationPanel(dimension);
 
-            // Create a animator that drives canvas' display() at the specified FPS.
+            // Create a animator that drives canvas' render() at the specified FPS.
             final FPSAnimator animator = new FPSAnimator(canvas, FPS, true);
 
             // Create the top-level container

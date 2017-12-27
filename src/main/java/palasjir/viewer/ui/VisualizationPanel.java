@@ -1,4 +1,4 @@
-package palasjir.viewer;
+package palasjir.viewer.ui;
 
 import com.hackoeur.jglm.Mat4;
 import com.hackoeur.jglm.Matrices;
@@ -7,7 +7,11 @@ import com.jogamp.common.nio.Buffers;
 import com.jogamp.opengl.*;
 import com.jogamp.opengl.awt.GLCanvas;
 import com.jogamp.opengl.util.glsl.ShaderState;
+import palasjir.viewer.utils.ShaderProgramHelper;
+import palasjir.viewer.render.TransferFunction;
+import palasjir.viewer.utils.VolumeData;
 import palasjir.viewer.coordinates.Camera;
+import palasjir.viewer.render.UnitCube;
 
 import java.awt.Dimension;
 import java.nio.ByteBuffer;
@@ -17,7 +21,7 @@ import java.nio.IntBuffer;
 import static com.jogamp.opengl.GL.*;
 import static com.jogamp.opengl.GL2ES2.*;
 import static com.jogamp.opengl.GL2GL3.*;
-import static palasjir.viewer.Utils.*;
+import static palasjir.viewer.utils.Utils.*;
 
 public class VisualizationPanel extends GLCanvas implements GLEventListener {
 
@@ -117,7 +121,7 @@ public class VisualizationPanel extends GLCanvas implements GLEventListener {
     }
 
     /**
-     * Initializes screen buffer. Buffer for creating the screen display of rendered texture.
+     * Initializes screen buffer. Buffer for creating the screen render of rendered texture.
      *
      * @param gl GL Interface
      */

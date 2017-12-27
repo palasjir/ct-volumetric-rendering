@@ -1,4 +1,4 @@
-package palasjir.viewer;
+package palasjir.viewer.render;
 
 public class UnitCube {
 

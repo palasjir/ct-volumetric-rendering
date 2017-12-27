@@ -1,4 +1,4 @@
-package palasjir.viewer;
+package palasjir.viewer.utils;
 
 import java.awt.image.BufferedImage;
 import java.awt.image.WritableRaster;

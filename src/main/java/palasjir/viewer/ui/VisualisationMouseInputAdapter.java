@@ -1,4 +1,4 @@
-package palasjir.viewer;
+package palasjir.viewer.ui;
 
 import palasjir.viewer.coordinates.Camera;
 
