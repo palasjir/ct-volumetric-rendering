@@ -7,8 +7,6 @@ import com.hackoeur.jglm.Vec3;
 import java.awt.Point;
 
 import org.apache.commons.math3.geometry.euclidean.threed.Vector3D;
-import palasjir.viewer.coordinates.GLSphericalCoordinates;
-
 
 public class Camera {
 
@@ -72,6 +70,10 @@ public class Camera {
         updateView();
     }
 
+    public void setupProjection(float fovy, int w, int h, float near, float far) {
+        this.setupProjection(fovy, aspect(w, h), near, far);
+    }
+
     public void setupProjection(float fovy, float aspectRatio, float near, float far) {
         this.aspectRatio = aspectRatio;
         this.fovy = fovy;
@@ -107,6 +109,10 @@ public class Camera {
 
     public Mat4 mvp(Mat4 model) {
         return new Mat4(projection.multiply(view).multiply(model));
+    }
+
+    private float aspect(int w, int h) {
+        return (float) w / (float) h;
     }
 
 }

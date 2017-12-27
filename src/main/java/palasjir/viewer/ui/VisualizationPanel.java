@@ -110,7 +110,7 @@ public class VisualizationPanel extends GLCanvas implements GLEventListener {
         viewPortWidth = w;
         viewPortHeight = h;
         gl.glViewport(0, 0, w, h);
-        camera.setupProjection(45f, aspect(w, h), 1, 500);
+        camera.setupProjection(45f, w, h, 1, 500);
         frameBufferId = initFrameBuffer(gl);
     }
 
@@ -146,7 +146,10 @@ public class VisualizationPanel extends GLCanvas implements GLEventListener {
     }
 
     private void initRayCastingProgram(GL4 gl) {
-        rayProgram = new ShaderProgramHelper("raycasting.vert", "raycasting.frag");
+        rayProgram = new ShaderProgramHelper(
+                "raycasting.vert",
+                "raycasting.frag"
+        );
         rayProgram.init(gl);
         st.attachShaderProgram(gl, rayProgram.program(), true);
         screenSizeLoc = st.getUniformLocation(gl, "screenSize");
@@ -384,10 +387,6 @@ public class VisualizationPanel extends GLCanvas implements GLEventListener {
         // Render on the whole framebuffer, complete from the lower left corner to the upper right
         gl.glViewport(0, 0, viewPortWidth, viewPortHeight);
         gl.glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    }
-
-    private float aspect(int w, int h) {
-        return (float) w / (float) h;
     }
 
 }
