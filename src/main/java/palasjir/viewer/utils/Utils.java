@@ -1,7 +1,5 @@
 package palasjir.viewer.utils;
 
-import com.hackoeur.jglm.Mat3;
-import com.hackoeur.jglm.Mat4;
 import com.jogamp.opengl.GL;
 import com.jogamp.opengl.GL3;
 
