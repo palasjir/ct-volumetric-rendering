@@ -37,8 +37,4 @@ public class ShaderProgramHelper {
     private String shaderName(String name) {
         return "shaders/" + name;
     }
-
-    public void destroy(GL4 gl) {
-        program.destroy(gl);
-    }
 }
