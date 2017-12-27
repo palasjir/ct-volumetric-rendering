@@ -1,5 +1,7 @@
 #version 330 core
 
+precision highp float;
+
 in vec3 EntryPoint;
 
 uniform vec2 screenSize;
@@ -65,7 +67,7 @@ vec3 calcVoxel(vec3 point, vec2 cords, vec3 deltaDir) {
 
 void main()
 {
-    vec3 exitPoint = texture(exitPoints, gl_FragCoord.st/screenSize).xyz;
+    vec3 exitPoint = texture(exitPoints, gl_FragCoord.st / screenSize).xyz;
 
     // empty space skipping
     if (EntryPoint == exitPoint)
