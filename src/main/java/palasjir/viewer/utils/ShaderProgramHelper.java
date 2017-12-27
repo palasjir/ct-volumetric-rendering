@@ -10,7 +10,6 @@ public class ShaderProgramHelper {
 
     private final String fragmentShader;
     private final String vertexShader;
-
     private ShaderProgram program;
 
     public ShaderProgramHelper(String vertexShader, String fragmentShader) {
