@@ -1,0 +1,26 @@
+apply plugin: 'idea'
+apply plugin: 'java'
+apply plugin: 'application'
+
+buildscript {
+
+    repositories {
+        mavenCentral()
+    }
+}
+
+repositories {
+    mavenCentral()
+    maven { url 'https://jitpack.io' }
+}
+
+dependencies {
+    def jogl = '2.3.2'
+
+    compile "org.apache.commons:commons-math3:3.2"
+    compile "com.github.jroyalty:jglm:master-SNAPSHOT"
+    compile "org.jogamp.gluegen:gluegen-rt-main:$jogl"
+    compile "org.jogamp.jogl:jogl-all-main:$jogl"
+}
+
+mainClassName = 'palasjir.viewer.Main'
