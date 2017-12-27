@@ -21,6 +21,7 @@ import static viewer.Utils.*;
 public class VisualizationPanel extends GLCanvas implements GLEventListener {
 
     private static final int verticesID = 0; // input of vertexShader
+    private static boolean DEBUG = false;
 
     private int viewPortWidth;
     private int viewPortHeight;
@@ -76,54 +77,88 @@ public class VisualizationPanel extends GLCanvas implements GLEventListener {
 
     @Override
     public void init(GLAutoDrawable drawable) throws GLException {
-
-        GL4 gl = drawable.getGL().getGL4();
-//        drawable.setGL(new DebugGL4(gl));
-//        gl = drawable.getGL().getGL4();
-
-        initShaders(gl);
+        GL4 gl = getGL(drawable);
+        initShaderPrograms(gl);
         cubeVAO = initCube(gl);
-
         tfTextureID = initTransferFunction(gl);
         volumeTextureID = initVolumeTexture(gl, VolumeData.IMG_WIDTH, VolumeData.IMG_HEIGHT, VolumeData.IMG_DEPTH);
         gradientsTextureID = initGradients(gl);
         frameBufferID = initFrameBuffer(gl);
-
         initScreenBuffer(gl);
+    }
 
+    @Override
+    public void display(GLAutoDrawable drawable) {
+        GL4 gl = getGL(drawable);
+
+        // Render to buffer
+        gl.glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        gl.glBindFramebuffer(GL_FRAMEBUFFER, frameBufferID);
+        gl.glViewport(0, 0, viewPortWidth, viewPortHeight); // Render on the whole framebuffer, complete from the lower left corner to the upper right
+        gl.glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+        MVP = camera.mvp(model);
+
+        // draw cube to frame buffer
+        st.attachShaderProgram(gl, cubeProgram.program(), true); // attach cube program
+        st.useProgram(gl, true);
+        gl.glUniformMatrix4fv(matrixID, 1, false, MVP.getBuffer());
+        drawBox(gl, GL_FRONT);
+        st.useProgram(gl, false);
+        st.attachShaderProgram(gl, cubeProgram.program(), false); // detach cube program
+
+        gl.glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        gl.glViewport(0, 0, viewPortWidth, viewPortHeight);
+        gl.glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
+        gl.glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+        raycasting(gl);
+    }
+
+    @Override
+    public void reshape(GLAutoDrawable drawable, int x, int y, int w, int h) {
+        GL4 gl = getGL(drawable);
+        viewPortWidth = w;
+        viewPortHeight = h;
+        gl.glViewport(0, 0, w, h);
+        float aspect = (float) w / (float) h;
+        camera.setupProjection(45f, aspect, 1, 500);
+
+        frameBufferID = initFrameBuffer(gl);
     }
 
     @Override
     public void dispose(GLAutoDrawable drawable) {
-        GL4 gl = drawable.getGL().getGL4();
+        GL4 gl = getGL(drawable);
         st.destroy(gl);
     }
 
     /**
      * Initializes screen buffer. Buffer for creating the screen display of rendered texture.
+     *
      * @param gl GL Interface
      */
     private void initScreenBuffer(GL4 gl) {
         // The fullscreen quad's FBO
-        float[] g_quad_vertex_buffer_data = {
+        float[] data = {
                 -1.0f, -1.0f, 0.0f,
                 1.0f, -1.0f, 0.0f,
                 -1.0f, 1.0f, 0.0f,
                 -1.0f, 1.0f, 0.0f,
                 1.0f, -1.0f, 0.0f,
-                1.0f, 1.0f, 0.0f,};
-        IntBuffer quad_vertexbuffer = IntBuffer.allocate(1);
-        gl.glGenBuffers(1, quad_vertexbuffer);
-        gl.glBindBuffer(GL_ARRAY_BUFFER, quad_vertexbuffer.get(0));
-        gl.glBufferData(GL_ARRAY_BUFFER, g_quad_vertex_buffer_data.length * Float.SIZE, FloatBuffer.wrap(g_quad_vertex_buffer_data), GL_STATIC_DRAW);
+                1.0f, 1.0f, 0.0f
+        };
+        int id = genBufferId(gl);
+        gl.glBindBuffer(GL_ARRAY_BUFFER, id);
+        gl.glBufferData(GL_ARRAY_BUFFER, data.length * Float.SIZE, FloatBuffer.wrap(data), GL_STATIC_DRAW);
     }
 
-    private void initShaders(GL4 gl) {
-        initRaycastingProgram(gl);
+    private void initShaderPrograms(GL4 gl) {
+        initRayCastingProgram(gl);
         initCubeProgram(gl);
     }
 
-    private void initRaycastingProgram(GL4 gl) {
+    private void initRayCastingProgram(GL4 gl) {
         rayProgram = new ShaderProgramHelper("raycasting.vert", "raycasting.frag");
         rayProgram.init(gl);
         st.attachShaderProgram(gl, rayProgram.program(), true);
@@ -227,37 +262,6 @@ public class VisualizationPanel extends GLCanvas implements GLEventListener {
         return id;
     }
 
-
-    @Override
-    public void display(GLAutoDrawable drawable) {
-        GL4 gl = drawable.getGL().getGL4();
-//        drawable.setGL(new DebugGL4(gl));
-//        gl = drawable.getGL().getGL4();
-
-        // Render to buffer
-        gl.glBindFramebuffer(GL_FRAMEBUFFER, 0);
-        gl.glBindFramebuffer(GL_FRAMEBUFFER, frameBufferID);
-        gl.glViewport(0, 0, viewPortWidth, viewPortHeight); // Render on the whole framebuffer, complete from the lower left corner to the upper right
-        gl.glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-        MVP = camera.mvp(model);
-
-        // draw cube to frame buffer
-        st.attachShaderProgram(gl, cubeProgram.program(), true); // attach cube program
-        st.useProgram(gl, true);
-        gl.glUniformMatrix4fv(matrixID, 1, false, MVP.getBuffer());
-        drawBox(gl, GL_FRONT);
-        st.useProgram(gl, false);
-        st.attachShaderProgram(gl, cubeProgram.program(), false); // detach cube program
-
-        gl.glBindFramebuffer(GL_FRAMEBUFFER, 0);
-        gl.glViewport(0, 0, viewPortWidth, viewPortHeight);
-        gl.glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
-        gl.glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-        raycasting(gl);
-    }
-
     private void raycasting(GL4 gl) {
         st.attachShaderProgram(gl, rayProgram.program(), true);
         st.useProgram(gl, true);
@@ -318,18 +322,6 @@ public class VisualizationPanel extends GLCanvas implements GLEventListener {
         gl.glDisable(GL_CULL_FACE);
     }
 
-    @Override
-    public void reshape(GLAutoDrawable drawable, int x, int y, int w, int h) {
-        GL4 gl = drawable.getGL().getGL4();
-        viewPortWidth = w;
-        viewPortHeight = h;
-        gl.glViewport(0, 0, w, h);
-        float aspect = (float) w / (float) h;
-        camera.setupProjection(45f, aspect, 1, 500);
-
-        frameBufferID = initFrameBuffer(gl);
-    }
-
     private int initFrameBuffer(GL3 gl) {
         // The framebuffer, which regroups 0, 1, or more textures, and 0 or 1 depth buffer.
         int id = genFrameBufferId(gl);
@@ -369,6 +361,14 @@ public class VisualizationPanel extends GLCanvas implements GLEventListener {
         gl.glEnable(GL_DEPTH_TEST);
 
         return id;
+    }
+
+    private GL4 getGL(GLAutoDrawable drawable) {
+        if (DEBUG) {
+            GL4 gl = drawable.getGL().getGL4();
+            drawable.setGL(new DebugGL4(gl));
+        }
+        return drawable.getGL().getGL4();
     }
 
 }
