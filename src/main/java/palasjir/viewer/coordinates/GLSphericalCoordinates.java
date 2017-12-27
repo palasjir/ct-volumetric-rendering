@@ -1,4 +1,4 @@
-package palasjir.viewer.math;
+package palasjir.viewer.coordinates;
 
 import com.hackoeur.jglm.Vec3;
 import org.apache.commons.math3.geometry.euclidean.threed.SphericalCoordinates;

@@ -7,15 +7,13 @@ import com.hackoeur.jglm.Vec3;
 import java.awt.Point;
 
 import org.apache.commons.math3.geometry.euclidean.threed.Vector3D;
-import palasjir.viewer.math.GLSphericalCoordinates;
+import palasjir.viewer.coordinates.GLSphericalCoordinates;
 
 
 public class Camera {
 
     private final Vec3 up;
     private final Vec3 at;
-
-    private GLSphericalCoordinates eye;
 
     private float aspectRatio;
     private float fovy;
@@ -25,13 +23,12 @@ public class Camera {
 
     private Mat4 view;
     private Mat4 projection;
+    private GLSphericalCoordinates eye;
 
     public Camera(double zoom) {
-
         Vector3D eyeCart = new Vector3D(0, 0, zoom);
         at = new Vec3(0, 0, 0);
         up = new Vec3(0, 1, 0);
-
         eye = new GLSphericalCoordinates(eyeCart);
         updateView();
     }
