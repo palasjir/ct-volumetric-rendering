@@ -68,7 +68,6 @@ public class Camera {
 
     public void zoom(double distance) {
         zoomfactor += (float) distance * 0.01f;
-        //eye = new GLSphericalCoordinates(r, eye.getTheta(), eye.getPhi());
         projection = Matrices.perspective(fovy * zoomfactor, aspectRatio, near, far);
         updateView();
     }
