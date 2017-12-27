@@ -10,22 +10,10 @@ public class VisualisationMouseInputAdapter extends MouseInputAdapter {
 
     private Point start = null;
     private Point end = null;
-
-    private boolean moved = false;
-    boolean picked = true;
-    private Point pickedPoint = null;
-
     private Camera camera;
 
     public VisualisationMouseInputAdapter(Camera camera) {
         this.camera = camera;
-    }
-
-    @Override
-    public void mouseClicked(MouseEvent e) {
-        if (SwingUtilities.isRightMouseButton(e)) {
-            pickedPoint = e.getPoint();
-        }
     }
 
     @Override
@@ -40,14 +28,12 @@ public class VisualisationMouseInputAdapter extends MouseInputAdapter {
         end = e.getPoint();
         camera.drag(start, end);
         start = new Point(end);
-        moved = true;
     }
 
     @Override
     public void mouseReleased(MouseEvent e) {
         start = null;
         end = null;
-        moved = false;
     }
 
     @Override
