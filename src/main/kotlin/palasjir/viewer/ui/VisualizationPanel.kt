@@ -45,7 +45,7 @@ constructor(
 
     private val model: Mat4
     private var mvp: Mat4? = null
-    private val camera: Camera = Camera(3f)
+    private val camera: Camera = Camera(2f)
     private val volumeData: VolumeData
 
     // shader locations
@@ -80,6 +80,9 @@ constructor(
     override fun init(drawable: GLAutoDrawable) {
         val gl = getGL(drawable)
         initShaderPrograms(gl)
+
+        camera.position = Vec3(1f, 0f, -2f)
+
         cubeVAO = initCube(gl)
         tfTextureID = initTransferFunction(gl)
         volumeTextureID = initVolumeTexture(

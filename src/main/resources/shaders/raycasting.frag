@@ -19,7 +19,7 @@ const float stepSize = 0.005;
 const float specularExp = 128.0;
 const float ambientLight = 0.2;
 const vec4 bgColor = vec4(0.2, 0.2, 0.2, 1.0);
-const vec3 lightPositionWorld = vec3(10.0, -10.0, 10.0);
+const vec3 lightPositionWorld = vec3(10.0, 5.0, -10.0);
 
 // light constants
 const vec3 Ls = vec3(1.0, 1.0, 1.0);
