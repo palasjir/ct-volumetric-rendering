@@ -11,9 +11,12 @@ import java.awt.*
 import java.awt.event.WindowAdapter
 import java.awt.event.WindowEvent
 
+
+private val TITLE = "CT Viewer"
 private val CANVAS_WIDTH = 500
 private val CANVAS_HEIGHT = 500
 private val FPS = 25
+
 
 fun main(args: Array<String>) {
 
@@ -40,7 +43,7 @@ fun main(args: Array<String>) {
                 closingThread.start()
             }
         })
-        frame.title = "CT Viewer"
+        frame.title = TITLE
         frame.pack()
         frame.isVisible = true
         animator.start() // start the animation loop

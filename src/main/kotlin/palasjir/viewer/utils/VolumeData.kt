@@ -14,7 +14,7 @@ class VolumeData {
 
     init {
         loadImages()
-        interpolate()
+        interpolateVolume()
     }
 
     private fun loadImages() {
@@ -22,30 +22,32 @@ class VolumeData {
             val file = imageFile(z)
             try {
                 val tempImage = ImageIO.read(file)
-                val tempRaster = tempImage.raster
                 for (x in 0 until tempImage.width) {
                     for (y in 0 until tempImage.height) {
-                        pixels[x][y][z * 2] = tempRaster.getSample(x, y, 0)
+                        pixels[x][y][z * 2] = tempImage.raster.getSample(x, y, 0)
                     }
                 }
             } catch (ex: IOException) {
                 LOGGER.log(Level.SEVERE, "Image loading failed.", ex)
                 return
             }
-
         }
     }
 
-    private fun interpolate() {
+    private fun interpolateVolume() {
         var i = 1
         while (i < IMG_DEPTH - 1) {
             for (x in 0 until IMG_WIDTH) {
                 for (y in 0 until IMG_HEIGHT) {
-                    pixels[x][y][i] = (pixels[x][y][i - 1] + pixels[x][y][i + 1]) / 2
+                    pixels[x][y][i] = interpolate(x, y, i)
                 }
             }
             i += 2
         }
+    }
+
+    private fun interpolate(x: Int, y: Int, z: Int) : Int {
+        return (pixels[x][y][z - 1] + pixels[x][y][z + 1]) / 2
     }
 
     val buffer: ByteBuffer

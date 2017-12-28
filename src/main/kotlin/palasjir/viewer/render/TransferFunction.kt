@@ -64,7 +64,7 @@ class TransferFunction {
     }
 
     companion object {
-        private val SIZE = 256
+        val SIZE = 256
     }
 
 }

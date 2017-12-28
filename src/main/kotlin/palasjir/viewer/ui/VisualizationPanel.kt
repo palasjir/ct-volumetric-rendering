@@ -18,7 +18,6 @@ import java.nio.FloatBuffer
 import java.nio.IntBuffer
 
 class VisualizationPanel
-@Throws(GLException::class)
 constructor(
         dimension: Dimension,
         caps: GLCapabilities
@@ -78,7 +77,6 @@ constructor(
         model = rot.multiply(Mat4.MAT4_IDENTITY).translate(Vec3(-0.5f, -0.5f, -0.5f))
     }
 
-    @Throws(GLException::class)
     override fun init(drawable: GLAutoDrawable) {
         val gl = getGL(drawable)
         initShaderPrograms(gl)
@@ -200,7 +198,7 @@ constructor(
         gl.glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MIN_FILTER, GL_LINEAR)
         gl.glTexParameteri(GL_TEXTURE_1D, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
         gl.glPixelStorei(GL_UNPACK_ALIGNMENT, 1)
-        gl.glTexImage1D(GL_TEXTURE_1D, 0, GL_RGBA, 256, 0, GL_RGBA, GL_UNSIGNED_BYTE, tf.buffer)
+        gl.glTexImage1D(GL_TEXTURE_1D, 0, GL_RGBA, TransferFunction.Companion.SIZE, 0, GL_RGBA, GL_UNSIGNED_BYTE, tf.buffer)
 
         return id
     }
@@ -247,6 +245,7 @@ constructor(
     private fun raycasting(gl: GL4) {
         st.attachShaderProgram(gl, rayProgram.program, true)
         st.useProgram(gl, true)
+
         gl.glUniformMatrix4fv(rayMvpLoc, 1, false, mvp!!.buffer)
         gl.glUniform2f(
                 screenSizeLoc,
@@ -257,12 +256,10 @@ constructor(
                 VLoc,
                 1,
                 false,
-                camera.viewMatrix!!.buffer
+                camera.viewMatrix.buffer
         )
 
-        val normalMatrix = Matrices.invert(
-                camera.viewMatrix!!.multiply(model))
-                .transpose()
+        val normalMatrix = Matrices.invert(camera.viewMatrix.multiply(model)).transpose()
         gl.glUniformMatrix4fv(
                 normalMatrixLoc,
                 1,
@@ -291,6 +288,7 @@ constructor(
         gl.glUniform1i(gradientsLoc, 3)
 
         drawBox(gl, GL_BACK)
+
         st.useProgram(gl, false)
         st.attachShaderProgram(gl, rayProgram.program, false) // detach raycasting program
     }
