@@ -45,7 +45,7 @@ constructor(
 
     private val model: Mat4
     private var mvp: Mat4? = null
-    private val camera: Camera = Camera(3.0)
+    private val camera: Camera = Camera(3f)
     private val volumeData: VolumeData
 
     // shader locations
@@ -72,9 +72,9 @@ constructor(
 
         volumeData = VolumeData()
 
-        val rot = Matrices.rotate(90.0f, Vec3(1.0f, 0.0f, 0.0f))
+        val rotX = Matrices.rotate(90f, Vec3(1f, 0f, 0f))
 
-        model = rot.multiply(Mat4.MAT4_IDENTITY).translate(Vec3(-0.5f, -0.5f, -0.5f))
+        model = rotX.multiply(Mat4.MAT4_IDENTITY).translate(Vec3(-0.5f, -0.5f, -0.5f))
     }
 
     override fun init(drawable: GLAutoDrawable) {

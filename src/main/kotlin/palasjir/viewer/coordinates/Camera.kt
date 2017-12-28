@@ -3,12 +3,11 @@ package palasjir.viewer.coordinates
 import com.hackoeur.jglm.Mat4
 import com.hackoeur.jglm.Matrices.*
 import com.hackoeur.jglm.Vec3
-import org.apache.commons.math3.geometry.euclidean.threed.Vector3D
 
 import java.awt.*
 import java.lang.Math.toRadians
 
-class Camera(zoom: Double) {
+class Camera(zoom: Float) {
 
     private val up: Vec3 = Vec3(0f, 1f, 0f)
     private val at: Vec3 = Vec3(0f, 0f, 0f)
@@ -21,7 +20,7 @@ class Camera(zoom: Double) {
     private var projectionMatrix: ProjMat
 
     init {
-        eye = GLSphericalCoordinates(Vector3D(0.0, 0.0, zoom))
+        eye = GLSphericalCoordinates(Vec3(0f, 0f, zoom))
         viewMatrix = updateView()
         projectionMatrix = ProjMat()
     }
