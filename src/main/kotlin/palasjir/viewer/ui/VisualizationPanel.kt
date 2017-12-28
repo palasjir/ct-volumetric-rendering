@@ -56,8 +56,8 @@ constructor(
     private var backFaceLoc: Int = 0
     private var volumeLoc: Int = 0
     private var gradientsLoc: Int = 0
-    private var VLoc: Int = 0
-    private var normalMatrixLoc: Int = 0
+    private var viewMatLoc: Int = 0
+    private var normalMatLoc: Int = 0
 
     init {
         preferredSize = dimension
@@ -140,19 +140,19 @@ constructor(
         rayProgram.init(gl)
         st.attachShaderProgram(gl, rayProgram.program, true)
         screenSizeLoc = st.getUniformLocation(gl, "screenSize")
-        transferFuncLoc = st.getUniformLocation(gl, "TransferFunc")
+        transferFuncLoc = st.getUniformLocation(gl, "transferFn")
         backFaceLoc = st.getUniformLocation(gl, "exitPoints")
-        volumeLoc = st.getUniformLocation(gl, "VolumeTex")
+        volumeLoc = st.getUniformLocation(gl, "volume")
         gradientsLoc = st.getUniformLocation(gl, "gradients")
-        VLoc = st.getUniformLocation(gl, "V")
-        normalMatrixLoc = st.getUniformLocation(gl, "normalMatrix")
-        rayMvpLoc = st.getUniformLocation(gl, "MVP")
+        viewMatLoc = st.getUniformLocation(gl, "viewMat")
+        normalMatLoc = st.getUniformLocation(gl, "normalMat")
+        rayMvpLoc = st.getUniformLocation(gl, "mvp")
     }
 
     private fun initCubeProgram(gl: GL4) {
         cubeProgram.init(gl)
         st.attachShaderProgram(gl, cubeProgram.program, true)
-        cubeMvpLoc = st.getUniformLocation(gl, "MVP")
+        cubeMvpLoc = st.getUniformLocation(gl, "mvp")
     }
 
     /**
@@ -253,7 +253,7 @@ constructor(
                 viewPortHeight.toFloat()
         )
         gl.glUniformMatrix4fv(
-                VLoc,
+                viewMatLoc,
                 1,
                 false,
                 camera.viewMatrix.buffer
@@ -261,7 +261,7 @@ constructor(
 
         val normalMatrix = Matrices.invert(camera.viewMatrix.multiply(model)).transpose()
         gl.glUniformMatrix4fv(
-                normalMatrixLoc,
+                normalMatLoc,
                 1,
                 false,
                 normalMatrix.buffer

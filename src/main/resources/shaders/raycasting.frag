@@ -2,15 +2,15 @@
 
 precision highp float;
 
-in vec3 EntryPoint;
+in vec3 entryPoint;
 
 uniform vec2 screenSize;
 uniform sampler2D exitPoints;
-uniform sampler3D VolumeTex;
-uniform sampler1D TransferFunc;
+uniform sampler3D volume;
+uniform sampler1D transferFn;
 uniform sampler3D gradients;
-uniform mat4 V;
-uniform mat4 normalMatrix;
+uniform mat4 viewMat;
+uniform mat4 normalMat;
 
 out vec4 fragColor;
 
@@ -70,16 +70,16 @@ void main()
     vec3 exitPoint = texture(exitPoints, gl_FragCoord.st / screenSize).xyz;
 
     // empty space skipping
-    if (EntryPoint == exitPoint)
+    if (entryPoint == exitPoint)
         discard;
 
-    vec3 dir = (exitPoint - EntryPoint);
+    vec3 dir = (exitPoint - entryPoint);
     float len = length(dir);
     vec3 dirN = normalize(dir);
     vec3 deltaDir = dirN * stepSize;
     float deltaDirLen = length(deltaDir);
 
-    vec3 voxelCoord = calcVoxel(EntryPoint, gl_FragCoord.xy, deltaDir);
+    vec3 voxelCoord = calcVoxel(entryPoint, gl_FragCoord.xy, deltaDir);
 
     float alphaAcum = 0.0;
     float lengthAcum = 0.0;
@@ -91,16 +91,16 @@ void main()
 
     vec3 viewSpacePosition;
     vec3 viewSpaceNormal;
-    vec3 viewSpaceLightPosition = vec3(V * vec4(lightPositionWorld, 1.0));
+    vec3 viewSpaceLightPosition = vec3(viewMat * vec4(lightPositionWorld, 1.0));
 
     for(int i = 0; i < MAX_ITERATIONS; i++)
     {
-    	intensity = texture(VolumeTex, voxelCoord).x;
+    	intensity = texture(volume, voxelCoord).x;
         gradient = normalize(texture(gradients, voxelCoord).xyz);
-        sampleColor = texture(TransferFunc, intensity);
+        sampleColor = texture(transferFn, intensity);
 
         viewSpacePosition = voxelCoord;
-        viewSpaceNormal = normalize((normalMatrix * vec4(gradient, 0.0)).xyz);
+        viewSpaceNormal = normalize((normalMat * vec4(gradient, 0.0)).xyz);
 
         if (sampleColor.a > 0.0) {
             // correction
