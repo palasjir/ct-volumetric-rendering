@@ -1,8 +1,10 @@
 package palasjir.viewer.coordinates
 
 import com.hackoeur.jglm.Mat4
+import com.hackoeur.jglm.Matrices
 import com.hackoeur.jglm.Matrices.*
 import com.hackoeur.jglm.Vec3
+import palasjir.kglm.*
 
 import java.awt.*
 import java.lang.Math.toRadians
@@ -16,6 +18,8 @@ class Camera(zoom: Float) {
     
     var viewMatrix: Mat4
         private set
+    var viewPortWidth: Int = -1
+    var viewPortHeight: Int = -1
     
     private var projectionMatrix: ProjMat
 
@@ -64,8 +68,12 @@ class Camera(zoom: Float) {
     }
 
     fun setupProjection(fov: Float, w: Int, h: Int, near: Float, far: Float) {
+        viewPortWidth = w
+        viewPortHeight = h
         projectionMatrix = ProjMat(fov, w, h, near, far)
     }
+
+    fun setupDefaultProjection(w: Int, h: Int) = this.setupProjection(45f, w, h, 1f, 500f)
     
     var position: Vec3
         get() = eye.cartesian
@@ -77,9 +85,8 @@ class Camera(zoom: Float) {
     val viewDirection: Vec3
         get() = at.subtract(eye.cartesian).unitVector
 
-    fun mvp(model: Mat4): Mat4 {
-        return Mat4(projectionMatrix.multiply(viewMatrix).multiply(model))
-    }
+    fun mvp(model: Mat4): Mat4 = projectionMatrix * viewMatrix * model
+    fun normalMatrix(model: Mat4): Mat4 = Matrices.invert(viewMatrix * model).transpose()
     
     private val topLock = Math.toRadians(0.000000001)
     private val bottomLock = Math.toRadians(179.999999999)

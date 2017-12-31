@@ -22,7 +22,9 @@ class ProjMat {
     constructor(fov: Float, w: Int, h: Int, near: Float, far: Float): this(fov, aspect(w, h), near, far)
     
     constructor(): this(45f, 1f, 1f, 500f)
-    
+
+    operator fun times(mat: Mat4): Mat4 = this.multiply(mat)
+
     fun multiply(mat: Mat4): Mat4 = this.mat.multiply(mat)
     
     fun zoom(zoomFactor: Float): ProjMat = ProjMat(fov * zoomFactor, aspectRatio, near, far)

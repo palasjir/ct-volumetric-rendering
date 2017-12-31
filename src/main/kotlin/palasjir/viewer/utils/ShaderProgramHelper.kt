@@ -6,7 +6,7 @@ import com.jogamp.opengl.GL4
 import com.jogamp.opengl.util.glsl.ShaderCode
 import com.jogamp.opengl.util.glsl.ShaderProgram
 
-class ShaderProgramHelper(
+open class ShaderProgramHelper(
         private val vertexShader: String,
         private val fragmentShader: String
 ) {
